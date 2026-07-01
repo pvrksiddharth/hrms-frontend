@@ -1,88 +1,138 @@
-import { useState } from "react";
-import { useSignIn } from "@clerk/clerk-react";
+﻿import { useState } from "react";
+import { useSignIn, useClerk } from "@clerk/clerk-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginForm() {
   const { signIn, isLoaded } = useSignIn();
+  const { setActive } = useClerk();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-        async function handleLogin(e: React.FormEvent) {
-        e.preventDefault();
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
 
-        if (!isLoaded || !signIn) return;
+    if (!isLoaded) return;
 
-        setLoading(true);
-        setError("");
+    setLoading(true);
+    setError("");
 
-        try {
-            const result = await signIn.create({
-            identifier: email,
-            password,
-            });
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
 
-            if (result.status === "complete") {
-            window.location.reload();
-            }
+      if (result.status === "complete") {
+        await setActive({
+          session: result.createdSessionId,
+        });
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Invalid Credentials");
+    }
 
-        } catch (err: any) {
-            setError(err.errors?.[0]?.message || "Login failed.");
-        }
-
-        setLoading(false);
-        }
+    setLoading(false);
+  }
 
   return (
     <form
       onSubmit={handleLogin}
-      className="w-[520px] rounded-3xl bg-white p-12 shadow-2xl"
+      className="w-[500px] rounded-2xl bg-white/95 p-10 shadow-2xl backdrop-blur-xl transition-all"
     >
-      <h1 className="text-5xl font-bold tracking-tight">
+      <h1 className="text-5xl font-extrabold tracking-tight text-slate-900">
         Welcome Back
       </h1>
 
-      <p className="mt-3 mb-10 text-lg text-gray-500">
+      <p className="mt-3 text-lg text-slate-500">
         Sign in to access your HRMS Workspace.
       </p>
 
-      <label className="font-semibold">
-        Email
-      </label>
+      {/* EMAIL */}
 
-       <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="mt-2 mb-8 h-14 w-full rounded-xl border border-gray-300 px-5 text-lg outline-none transition focus:border-blue-600"
-       />
-
-      <label className="font-semibold">
-        Password
-      </label>
+      <div className="mt-10">
+        <label className="mb-2 block font-semibold text-slate-700">
+          Email Address
+        </label>
 
         <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="mt-2 mb-8 h-14 w-full rounded-xl border border-gray-300 px-5 text-lg outline-none transition focus:border-blue-600"
+          type="email"
+          placeholder="admin@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="h-16 w-full rounded-xl border border-slate-300 px-5 py-4 text-lg outline-none transition-all duration-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
         />
+      </div>
 
-            {error && (
-        <p className="mt-3 text-red-600">
-            {error}
-        </p>
-        )}
-        
+      {/* PASSWORD */}
+
+      <div className="mt-6">
+        <label className="mb-2 block font-semibold text-slate-700">
+          Password
+        </label>
+
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-16 w-full rounded-xl border border-slate-300 px-5 py-4 pr-14 text-lg outline-none transition-all duration-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-5 top-5 text-slate-500 transition-colors hover:text-blue-600"
+          >
+            {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+          </button>
+        </div>
+      </div>
+
+      {/* OPTIONS */}
+
+      <div className="mt-5 flex items-center justify-between">
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input type="checkbox" />
+          Remember Me
+        </label>
+
         <button
-        type="submit"
-        disabled={loading}
-        className="mt-10 h-14 w-full rounded-xl bg-blue-600 text-lg font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+          type="button"
+          className="text-sm font-semibold text-blue-600 hover:underline"
         >
-
-        {loading ? "Signing In..." : "Login Securely"}     
-    
+          Forgot Password?
         </button>
+      </div>
+
+      {/* ERROR */}
+
+      {error && (
+        <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-600">
+          {error}
+        </div>
+      )}
+
+      {/* LOGIN */}
+
+      <button
+        disabled={loading}
+        className="mt-10 flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-lg font-semibold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl active:scale-[0.98] disabled:cursor-not-allowed disabled:hover:translate-y-0"
+      >
+        {loading ? (
+          <>
+            <Loader2 size={20} className="animate-spin" />
+            Authenticating...
+          </>
+        ) : (
+          "Sign In"
+        )}
+      </button>
     </form>
   );
 }
